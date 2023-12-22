@@ -14,10 +14,6 @@ jobs:
       contents: write
     steps:
     - uses: actions/checkout@v3
-    - uses: ncipollo/release-action@v1
-      with:
-        artifacts: "bin/*"
-        tag: notCool
     - name: make build directory
       run: mkdir build
     - name: build for windows
@@ -26,4 +22,7 @@ jobs:
       run: go build -o bin/gotunnelme-testcasego-linux
     - name: create releases archive
       run: zip -r binaries.zip bin
-    
+    - uses: ncipollo/release-action@v1
+      with:
+        artifacts: "bin/*"
+        tag: finally
