@@ -16,8 +16,8 @@ jobs:
     - uses: actions/checkout@v3
     - uses: ncipollo/release-action@v1
       with:
-        artifacts: "*.zip"
-        tag: cool
+        artifacts: "bin/*"
+        tag: notCool
     - name: make build directory
       run: mkdir build
     - name: build for windows
