@@ -27,19 +27,25 @@ func main() {
 	handler := http.NewServeMux()
 	count := 0
 	handler.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hi There Nigga %v\n", count)
-		msgLogger.Printf("Got a %v request from nigga %v\n", r.Method, count)
+		fmt.Fprintf(w, "Hi There %v\n", count)
+		msgLogger.Printf("Got a %v request from %v\n", r.Method, count)
 		count++
 	})
 
 	handler.HandleFunc("/api/post", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			r.ParseMultipartForm(1024 * 8)
-			name := r.FormValue("name")
-			file, _, _ := r.FormFile("file")
 
-			bytes, _ := io.ReadAll(file)
-			msgLogger.Println("File from: ", name, "\nSTART FILE-------------\n", string(bytes), "\n-------------END FILE")
+			name := r.FormValue("name")
+			meta := r.FormValue("meta")
+			test_case, _, _ := r.FormFile("test_case")
+
+			bytes, _ := io.ReadAll(test_case)
+			msgLogger.Println("File from: ", name,
+				"File MetaData ::", meta,
+				"\nSTART TESTCASE------------┐\n"+
+					string(bytes)+
+					"\n└------------END TESTCASE")
 		}
 	})
 
@@ -60,19 +66,23 @@ func main() {
 	checkErr(err)
 	goTunnelLogger.Println(info.Url)
 
-	for {
-		remoteConn, err := net.Dial("tcp4", fmt.Sprintf("localtunnel.me:%d", info.Port))
-		fatalErr(err)
-		localConn, err := net.Dial("tcp4", fmt.Sprintf("localhost:%d", 8080))
-		fatalErr(err)
+	fun := func() {
+		for {
+			remoteConn, err := net.Dial("tcp4", fmt.Sprintf("localtunnel.me:%d", info.Port))
+			fatalErr(err)
+			localConn, err := net.Dial("tcp4", fmt.Sprintf("localhost:%d", 8080))
+			fatalErr(err)
 
-		go func() {
-			io.Copy(remoteConn, localConn)
-		}()
-		go func() {
-			io.Copy(localConn, remoteConn)
-		}()
+			go io.Copy(remoteConn, localConn)
+			go io.Copy(localConn, remoteConn)
+		}
 	}
+
+	for i := 0; i < 9; i++ {
+		go fun()
+	}
+
+	fun()
 
 }
 
