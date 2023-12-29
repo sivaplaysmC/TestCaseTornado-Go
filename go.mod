@@ -1,3 +1,3 @@
-module example.com/siva/myLocalTunnel
+module github.com/sivaplaysmC/TestCaseTornado-Go
 
 go 1.20

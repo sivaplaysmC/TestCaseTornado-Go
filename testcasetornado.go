@@ -8,10 +8,11 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 )
 
-var goTunnelLogger = log.New(os.Stdout, "[GoTunnel] ", log.Ltime|log.Ldate|log.Lshortfile)
-var msgLogger = log.New(os.Stdout, "[New Incoming Message] ", log.Ltime)
+var goTunnelLogger = log.New(os.Stdout, "[GoTunnel] ", log.Ltime|log.Ldate)
+var msgLogger = log.New(os.Stdout, "[New Incoming Message] ", log.Ltime|log.Ldate|log.LstdFlags)
 
 const subdomain string = "hidden-testcases-here"
 
@@ -34,18 +35,30 @@ func main() {
 
 	handler.HandleFunc("/api/post", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
-			r.ParseMultipartForm(1024 * 8)
+			var output strings.Builder
 
 			name := r.FormValue("name")
-			meta := r.FormValue("meta")
-			test_case, _, _ := r.FormFile("test_case")
+			if name != "" {
+				output.WriteString("From:: " + name + " ")
+			}
 
-			bytes, _ := io.ReadAll(test_case)
-			msgLogger.Println("File from: ", name,
-				"File MetaData ::", meta,
-				"\nSTART TESTCASE------------┐\n"+
-					string(bytes)+
-					"\n└------------END TESTCASE")
+			meta := r.FormValue("meta")
+			if meta != "" {
+				output.WriteString("MetaData:: " + meta + " ")
+			}
+
+			file, fileHeader, err := r.FormFile("test_case")
+			if err == nil {
+				defer file.Close()
+				bytes, _ := io.ReadAll(file)
+				output.WriteString("\nFile Name:: " + fileHeader.Filename)
+				output.WriteString("\nSTART TESTCASE───────────────────────────────────────┐\n" +
+					string(bytes) +
+					"\n└───────────────────────────────────────END TESTCASE\n")
+			}
+
+			msgLogger.Print(output.String())
+
 		}
 	})
 
@@ -64,8 +77,9 @@ func main() {
 	info := TunnelInfo{}
 	json.Unmarshal(bytes, &info)
 	checkErr(err)
-	goTunnelLogger.Println(info.Url)
+	goTunnelLogger.Println("Tunnel URL :: " + info.Url)
 
+	// hack to tunnel localhost to a .loca.lt domain
 	fun := func() {
 		for {
 			remoteConn, err := net.Dial("tcp4", fmt.Sprintf("localtunnel.me:%d", info.Port))
